@@ -1,0 +1,13 @@
+data = LOAD '/postsout/total' USING PigStorage(',') as (a:int,b:int,c:int);
+SPLIT data INTO U IF a==9, S IF a==0;  
+V = FOREACH U GENERATE b,c; 
+T = FOREACH S GENERATE b,c; 
+W = JOIN T BY b, V BY b PARALLEL 7; 
+X = GROUP W BY V::c;
+Y = FOREACH X GENERATE group as id, SUM(W.T::c) as key:int PARALLEL 3;
+rows = LOAD '/pig/stackoverflow_users.xml' USING org.apache.pig.piggybank.storage.XMLLoader('row') as data:chararray;
+users = FOREACH rows GENERATE REGEX_EXTRACT(data,'<row Id="(.*?)"(.*)',1) as id:chararray, data as row:chararray;
+Z = FOREACH Y GENERATE (chararray)id, key;
+result = JOIN Z by id,users BY id PARALLEL 7;
+result1 = FOREACH result GENERATE Z::key as key, users::row as row; 
+STORE result1 INTO '/pig_output';

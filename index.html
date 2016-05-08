@@ -1,0 +1,115 @@
+<html>
+<head>
+	<title>User Interface</title>
+	<link href="css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+<body>
+<div class="container">
+<h1> Hi, we will find Study Gods for you.<small><br>Please input keywords of your quesstion below.</small> </h1>
+<hr>
+<div class="form-inline">
+<label for="tag1">Keyword 1 </label><input class="form-control" type="text" id="tag1">
+<label for="tag2">Keyword 2 </label><input class="form-control" type="text" id="tag2">
+<label for="tag3">Keyword 3 </label><input class="form-control" type="text" id="tag3">
+<label for="tag4">Keyword 4 </label><input class="form-control" type="text" id="tag4">
+</div>
+<br>
+<button class="btn btn-primary" type="button" id="spell">Spell Check</button>
+<button class="btn btn-success" type="button" id="mr">Find Related Questions</button>
+<button class="btn btn-warning" type="button" id="pig">Find Corresponding Users</button>
+<hr>
+
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">Links </h3>
+  </div>
+  <div id="links" class="panel-body">
+	<ul>
+	<li><a target="_blank" href="http://202.45.128.135:15227/"> Hadoop File System </a></li>
+	<li><a target="_blank" href="http://202.45.128.135:14227/"> Job History</a></li>
+	<li><a target="_blank" href="http://202.45.128.135:13227/"> Yarn </a></li>
+	<li><a target="_blank" href="http://202.45.128.135:10027/ganglia"> Ganglia </a></li>
+	</ul>
+  </div>
+</div>
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">Output Area</h3>
+  </div>
+  <div id="output" class="panel-body"></div>
+</div>
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">Logs</h3>
+  </div>
+  <div id="log1" class="panel-body"></div>
+  <div id="log2" class="panel-body"></div>
+</div>
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script>
+var timers = new Array();
+function output(str) {
+	$("#output").html(str);
+};
+
+function clear() {
+for (var i = 0; i < timers.length; i++)
+{
+    clearTimeout(timers[i]);
+}	
+}
+
+function poll(log,file) {
+    $.ajax({
+        url: file,
+        type: "GET",
+        success: function(data,status) {
+		$(log).text(data);
+		$(log).html($(log).html().split('\n').join('<br>'));
+		console.log(status);
+        },
+        complete: function() {
+		timers.push(setTimeout(function() {poll(log,file)}, 10000));
+	},
+        timeout: 5000
+    })
+};
+
+$(document).ready(function() {
+	console.log("ready");
+	$.ajaxSetup({ cache: false });
+	$("#spell").click(function() {
+		output("Spell checking...");
+		$.get("correct.php",{tag1:$("#tag1").val(),tag2:$("#tag2").val(),tag3:$("#tag3").val(),tag4:$("#tag4").val()},function(data,status) {
+			output(data);
+		});
+	});
+
+	$("#mr").click(function(){
+		output("MapReduce is running...");
+		poll("#log1","mr1_err");
+		$.get("mr1.php",{tag1:$("#tag1").val(),tag2:$("#tag2").val(),tag3:$("#tag3").val(),tag4:$("#tag4").val()},function(data, status) {
+			output('MR finished');
+			clear();
+			alert("MR finished: "+ status);
+		});	
+	});
+	$("#pig").click(function(){
+		$("#log1").hide();
+		output("Pig is running...");
+		poll("#log2","pig_err");
+		$.get("pig.php",function(data, status) {
+			output('Pig has finished. Check result on <a href="http://202.45.128.135:12627/goto/6ce848fea2195e22377183fa4162bed9"> Kibana </a>.');
+			clear();
+			alert("Pig finished: "+ status);
+		});	
+	});
+
+})
+</script>
+</body>
+</html>
+
